@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NitroCoffee Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f8f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .chat-container {
+            width: 300px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .chat-header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+        }
+        .chat-body {
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+        }
+        .chat-footer {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+        .chat-footer input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .chat-footer button {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
+        .message {
+            margin: 10px 0;
+        }
+        .message.bot {
+            text-align: left;
+        }
+        .message.user {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            NitroCoffee Chatbot
+        </div>
+        <div class="chat-body" id="chat-body">
+            <!-- Chat messages will appear here -->
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="user-input" placeholder="Escribe tu mensaje...">
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        let responses = JSON.parse(localStorage.getItem('responses')) || {
+            '¿qué tipos de café tienes?': 'Tenemos Café Espresso, Café Latte y Café Cappuccino.',
+            '¿quién desarrolló este chatbot?': 'Este chatbot fue desarrollado por NITROWEB.4.',
+            '¿qué es un café espresso?': 'El café espresso es una forma de preparar café que se caracteriza por ser más concentrado y tener una capa de crema en la superficie.',
+            '¿qué es un café latte?': 'El café latte es una bebida hecha con espresso y leche vaporizada, con una pequeña capa de espuma de leche en la parte superior.',
+            '¿qué es un café cappuccino?': 'El cappuccino es una bebida hecha con espresso, una cantidad igual de leche vaporizada y espuma de leche en la parte superior.'
+        };
+
+        function saveResponses() {
+            localStorage.setItem('responses', JSON.stringify(responses));
+        }
+
+        function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const chatBody = document.getElementById('chat-body');
+            const userMessage = userInput.value.trim().toLowerCase();
+            
+            if (userMessage) {
+                displayMessage(userMessage, 'user');
+                
+                if (responses[userMessage]) {
+                    displayMessage(responses[userMessage], 'bot');
+                } else {
+                    const defaultResponse = `No entiendo "${userMessage}". ¿Quieres agregar una respuesta para esta pregunta? (sí/no)`;
+                    displayMessage(defaultResponse, 'bot');
+                    handleLearning(userMessage);
+                }
+
+                userInput.value = '';
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+        }
+
+        function displayMessage(message, sender) {
+            const chatBody = document.getElementById('chat-body');
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${sender}`;
+            messageElement.textContent = message;
+            chatBody.appendChild(messageElement);
+        }
+
+        function handleLearning(unrecognizedMessage) {
+            const userInput = document.getElementById('user-input');
+            const chatBody = document.getElementById('chat-body');
+            
+            const learningListener = function(event) {
+                if (event.key === 'Enter') {
+                    const userResponse = userInput.value.trim().toLowerCase();
+                    
+                    if (userResponse === 'sí') {
+                        displayMessage('Por favor, escribe la respuesta para: "' + unrecognizedMessage + '"', 'bot');
+                        
+                        userInput.value = '';
+                        userInput.removeEventListener('keypress', learningListener);
+                        
+                        const responseListener = function(event) {
+                            if (event.key === 'Enter') {
+                                const newResponse = userInput.value.trim();
+                                responses[unrecognizedMessage] = newResponse;
+                                saveResponses();
+                                
+                                displayMessage('Gracias, he aprendido una nueva respuesta.', 'bot');
+                                userInput.value = '';
+                                userInput.removeEventListener('keypress', responseListener);
+                            }
+                        };
+                        userInput.addEventListener('keypress', responseListener);
+                    } else if (userResponse === 'no') {
+                        displayMessage('Está bien, dime si necesitas algo más.', 'bot');
+                        userInput.value = '';
+                        userInput.removeEventListener('keypress', learningListener);
+                    } else {
+                        displayMessage('Por favor, responde "sí" o "no".', 'bot');
+                        userInput.value = '';
+                    }
+                    
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                }
+            };
+
+            userInput.addEventListener('keypress', learningListener);
+        }
+    </script>
+</body>
+</html>
+
